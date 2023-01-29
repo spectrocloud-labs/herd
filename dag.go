@@ -27,6 +27,11 @@ func NewGraph() *Graph {
 
 type GraphOption func(string, *opState, *Graph) error
 
+var FatalOp GraphOption = func(key string, os *opState, g *Graph) error {
+	os.fatal = true
+	return nil
+}
+
 func WithDeps(deps ...string) GraphOption {
 	return func(key string, os *opState, g *Graph) error {
 		for _, d := range deps {
@@ -75,6 +80,12 @@ func (g *Graph) Run(ctx context.Context) error {
 				}(ctx, g, r)
 			}
 			wg.Wait()
+
+			for _, s := range states {
+				if s.fatal && s.err != nil {
+					return s.err
+				}
+			}
 		}
 	}
 	return nil

@@ -2,6 +2,7 @@ package zeroinit_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/mudler/zeroinit"
 	. "github.com/onsi/ginkgo/v2"
@@ -52,6 +53,24 @@ var _ = Describe("zeroinit dag", func() {
 			})
 			g.Run(context.Background())
 			Expect(f).To(Equal("barfoo"))
+		})
+	})
+
+	Context("With errors", func() {
+		It("fails", func() {
+			f := ""
+
+			g.AddOp("foo", func(ctx context.Context) error {
+				return fmt.Errorf("failure")
+			}, WithDeps("bar"), FatalOp)
+
+			g.AddOp("bar", func(ctx context.Context) error {
+				f += "bar"
+				return nil
+			})
+
+			err := g.Run(context.Background())
+			Expect(err).To(Equal(fmt.Errorf("failure")))
 		})
 	})
 })
