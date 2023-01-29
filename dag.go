@@ -2,11 +2,12 @@ package zeroinit
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/kendru/darwin/go/depgraph"
 )
+
+type opCallback func(context.Context) error
 
 // Graph represents a directed graph.
 type Graph struct {
@@ -15,7 +16,7 @@ type Graph struct {
 }
 
 type opState struct {
-	fn    func(context.Context) error
+	fn    opCallback
 	err   error
 	fatal bool
 }
@@ -37,38 +38,59 @@ func (g *Graph) AddOp(name string, opts ...GraphOption) error {
 	return nil
 }
 
-//func (g *Graph) Analyze()
+type GraphEntry struct {
+	WithCallback bool
+	Callback     opCallback
+	Error        error
+	Fatal        bool
+	Name         string
+}
+
+func (g *Graph) buildStateGraph() (graph [][]GraphEntry) {
+	for _, layer := range g.TopoSortedLayers() {
+
+		states := []GraphEntry{}
+
+		for _, r := range layer {
+			states = append(states, GraphEntry{
+				WithCallback: g.ops[r].fn != nil,
+				Callback:     g.ops[r].fn,
+				Error:        g.ops[r].err,
+				Fatal:        g.ops[r].fatal,
+				Name:         r,
+			})
+		}
+
+		graph = append(graph, states)
+	}
+	return
+}
+
+func (g *Graph) Analyze() (graph [][]GraphEntry) {
+	return g.buildStateGraph()
+}
 
 func (g *Graph) Run(ctx context.Context) error {
-	for _, layer := range g.TopoSortedLayers() {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("context canceled")
-		default:
-			states := map[string]*opState{}
+	for _, layer := range g.buildStateGraph() {
+		var wg sync.WaitGroup
 
-			for _, r := range layer {
-				states[r] = g.ops[r]
+		for _, r := range layer {
+			if !r.WithCallback {
+				continue
 			}
+			fn := r.Callback
+			wg.Add(1)
+			go func(ctx context.Context, g *Graph, key string) {
+				defer wg.Done()
+				g.ops[key].err = fn(ctx)
+			}(ctx, g, r.Name)
+		}
 
-			var wg sync.WaitGroup
-			for r, s := range states {
-				if s.fn == nil {
-					continue
-				}
-				fn := s.fn
-				wg.Add(1)
-				go func(ctx context.Context, g *Graph, key string) {
-					defer wg.Done()
-					g.ops[key].err = fn(ctx)
-				}(ctx, g, r)
-			}
-			wg.Wait()
+		wg.Wait()
 
-			for _, s := range states {
-				if s.fatal && s.err != nil {
-					return s.err
-				}
+		for _, s := range layer {
+			if s.Fatal && g.ops[s.Name].err != nil {
+				return g.ops[s.Name].err
 			}
 		}
 	}
