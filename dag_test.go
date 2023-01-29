@@ -11,11 +11,9 @@ import (
 
 var _ = Describe("zeroinit dag", func() {
 	var g *Graph
-	var err error
+
 	BeforeEach(func() {
-		//	EventuallyConnects(1200)
-		g, err = NewGraph()
-		Expect(err).ToNot(HaveOccurred())
+		g = NewGraph()
 	})
 
 	Context("simple checks", func() {
@@ -145,12 +143,15 @@ var _ = Describe("zeroinit dag", func() {
 	})
 
 	Context("init", func() {
-		It("does not run untied jobs", func() {
-			g, err = NewGraph()
-			Expect(err).ToNot(HaveOccurred())
-			baz := false
-			foo := false
+		var baz bool
+		var foo bool
 
+		BeforeEach(func() {
+			baz = false
+			foo = false
+		})
+
+		It("does not run untied jobs", func() {
 			g.AddOp("baz", WithCallback(func(ctx context.Context) error {
 				baz = true
 				return nil
@@ -168,10 +169,7 @@ var _ = Describe("zeroinit dag", func() {
 		})
 
 		It("does run all untied jobs", func() {
-			g, err = NewGraph(EnableInit)
-			Expect(err).ToNot(HaveOccurred())
-			baz := false
-			foo := false
+			g = NewGraph(EnableInit)
 
 			g.AddOp("baz", WithCallback(func(ctx context.Context) error {
 				baz = true

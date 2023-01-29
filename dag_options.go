@@ -1,8 +1,7 @@
 package zeroinit
 
-type GraphOption func(g *Graph) error
+type GraphOption func(g *Graph)
 
-var EnableInit GraphOption = func(g *Graph) error {
+var EnableInit GraphOption = func(g *Graph) {
 	g.init = true
-	return nil
 }
