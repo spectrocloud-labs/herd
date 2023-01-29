@@ -2,6 +2,7 @@ package zeroinit
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/kendru/darwin/go/depgraph"
@@ -56,6 +57,7 @@ func (g *Graph) Run(ctx context.Context) error {
 	for _, layer := range g.TopoSortedLayers() {
 		select {
 		case <-ctx.Done():
+			return fmt.Errorf("context canceled")
 		default:
 			states := map[string]*opState{}
 
