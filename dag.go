@@ -25,8 +25,8 @@ func NewGraph() *Graph {
 	return &Graph{Graph: depgraph.New(), ops: make(map[string]*opState)}
 }
 
-func (g *Graph) AddOp(name string, fn func(context.Context) error, opts ...GraphOption) error {
-	state := &opState{fn: fn}
+func (g *Graph) AddOp(name string, opts ...GraphOption) error {
+	state := &opState{}
 
 	for _, o := range opts {
 		if err := o(name, state, g); err != nil {
@@ -34,7 +34,6 @@ func (g *Graph) AddOp(name string, fn func(context.Context) error, opts ...Graph
 		}
 	}
 	g.ops[name] = state
-
 	return nil
 }
 
@@ -54,6 +53,9 @@ func (g *Graph) Run(ctx context.Context) error {
 
 			var wg sync.WaitGroup
 			for r, s := range states {
+				if s.fn == nil {
+					continue
+				}
 				fn := s.fn
 				wg.Add(1)
 				go func(ctx context.Context, g *Graph, key string) {

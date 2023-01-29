@@ -1,5 +1,7 @@
 package zeroinit
 
+import "context"
+
 type GraphOption func(string, *opState, *Graph) error
 
 var FatalOp GraphOption = func(key string, os *opState, g *Graph) error {
@@ -14,6 +16,13 @@ func WithDeps(deps ...string) GraphOption {
 				return err
 			}
 		}
+		return nil
+	}
+}
+
+func WithCallback(fn func(context.Context) error) GraphOption {
+	return func(s string, os *opState, g *Graph) error {
+		os.fn = fn
 		return nil
 	}
 }

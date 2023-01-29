@@ -43,14 +43,14 @@ var _ = Describe("zeroinit dag", func() {
 	Context("Sequential runs", func() {
 		It("orders parallel", func() {
 			f := ""
-			g.AddOp("foo", func(ctx context.Context) error {
+			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
 				f += "foo"
 				return nil
-			}, WithDeps("bar"))
-			g.AddOp("bar", func(ctx context.Context) error {
+			}), WithDeps("bar"))
+			g.AddOp("bar", WithCallback(func(ctx context.Context) error {
 				f += "bar"
 				return nil
-			})
+			}))
 			g.Run(context.Background())
 			Expect(f).To(Equal("barfoo"))
 		})
@@ -60,14 +60,16 @@ var _ = Describe("zeroinit dag", func() {
 		It("fails", func() {
 			f := ""
 
-			g.AddOp("foo", func(ctx context.Context) error {
+			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
 				return fmt.Errorf("failure")
-			}, WithDeps("bar"), FatalOp)
+			}), WithDeps("bar"), FatalOp)
 
-			g.AddOp("bar", func(ctx context.Context) error {
-				f += "bar"
-				return nil
-			})
+			g.AddOp("bar",
+				WithCallback(func(ctx context.Context) error {
+					f += "bar"
+					return nil
+				}),
+			)
 
 			err := g.Run(context.Background())
 			Expect(err).To(Equal(fmt.Errorf("failure")))
