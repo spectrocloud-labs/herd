@@ -22,7 +22,7 @@ var _ = Describe("zeroinit dag", func() {
 			g.DependOn("B", "C")
 			g.DependOn("C", "D")
 			g.DependOn("D", "E")
-			Expect(g.TopoSortedLayers()).To(Equal([][]string{[]string{"E"}, []string{"D"}, []string{"C"}, []string{"B"}, []string{"A"}}))
+			Expect(g.TopoSortedLayers()).To(Equal([][]string{{"E"}, {"D"}, {"C"}, {"B"}, {"A"}}))
 		})
 
 		It("orders parallel", func() {
@@ -33,8 +33,8 @@ var _ = Describe("zeroinit dag", func() {
 			g.DependOn("X", "E")
 			Expect(g.TopoSortedLayers()).To(
 				Or(
-					Equal([][]string{[]string{"E"}, []string{"D", "X"}, []string{"C"}, []string{"B"}, []string{"A"}}),
-					Equal([][]string{[]string{"E"}, []string{"X", "D"}, []string{"C"}, []string{"B"}, []string{"A"}}),
+					Equal([][]string{{"E"}, {"D", "X"}, {"C"}, {"B"}, {"A"}}),
+					Equal([][]string{{"E"}, {"X", "D"}, {"C"}, {"B"}, {"A"}}),
 				),
 			)
 		})
