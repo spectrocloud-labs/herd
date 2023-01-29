@@ -11,9 +11,11 @@ import (
 
 var _ = Describe("zeroinit dag", func() {
 	var g *Graph
+	var err error
 	BeforeEach(func() {
 		//	EventuallyConnects(1200)
-		g = NewGraph()
+		g, err = NewGraph()
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Context("simple checks", func() {
@@ -139,6 +141,52 @@ var _ = Describe("zeroinit dag", func() {
 			Expect(g.State("bar").Error).To(HaveOccurred())
 			Expect(f).To(Equal("nomercy"))
 			Expect(foo).To(Equal(""))
+		})
+	})
+
+	Context("init", func() {
+		It("does not run untied jobs", func() {
+			g, err = NewGraph()
+			Expect(err).ToNot(HaveOccurred())
+			baz := false
+			foo := false
+
+			g.AddOp("baz", WithCallback(func(ctx context.Context) error {
+				baz = true
+				return nil
+			}))
+
+			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+				foo = true
+				return nil
+			}))
+
+			err := g.Run(context.Background())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(foo).To(BeFalse())
+			Expect(baz).To(BeFalse())
+		})
+
+		It("does run all untied jobs", func() {
+			g, err = NewGraph(EnableInit)
+			Expect(err).ToNot(HaveOccurred())
+			baz := false
+			foo := false
+
+			g.AddOp("baz", WithCallback(func(ctx context.Context) error {
+				baz = true
+				return nil
+			}))
+
+			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+				foo = true
+				return nil
+			}))
+
+			err := g.Run(context.Background())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(foo).To(BeTrue())
+			Expect(baz).To(BeTrue())
 		})
 	})
 })

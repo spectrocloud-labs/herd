@@ -11,7 +11,8 @@ import (
 // Graph represents a directed graph.
 type Graph struct {
 	*depgraph.Graph
-	ops map[string]*opState
+	ops  map[string]*opState
+	init bool
 }
 
 // GraphEntry is the external representation of
@@ -26,11 +27,20 @@ type GraphEntry struct {
 }
 
 // NewGraph creates a new instance of a Graph.
-func NewGraph() *Graph {
-	return &Graph{Graph: depgraph.New(), ops: make(map[string]*opState)}
+func NewGraph(opts ...GraphOption) (*Graph, error) {
+	g := &Graph{Graph: depgraph.New(), ops: make(map[string]*opState)}
+	for _, o := range opts {
+		if err := o(g); err != nil {
+			return nil, err
+		}
+	}
+	if g.init {
+		g.AddOp("init")
+	}
+	return g, nil
 }
 
-func (g *Graph) AddOp(name string, opts ...GraphOption) error {
+func (g *Graph) AddOp(name string, opts ...OpOption) error {
 	state := &opState{Mutex: sync.Mutex{}}
 
 	for _, o := range opts {
@@ -39,6 +49,11 @@ func (g *Graph) AddOp(name string, opts ...GraphOption) error {
 		}
 	}
 	g.ops[name] = state
+
+	if g.init && len(g.Graph.Dependents(name)) == 0 {
+		g.Graph.DependOn(name, "init")
+	}
+
 	return nil
 }
 
@@ -79,8 +94,7 @@ func (g *Graph) Run(ctx context.Context) error {
 			fn := r.Callback
 
 			if !r.WeakDeps {
-				nodeSet := g.Graph.Dependencies(r.Name)
-				for k := range nodeSet {
+				for k := range g.Graph.Dependencies(r.Name) {
 					g.ops[r.Name].Lock()
 					g.ops[k].Lock()
 
