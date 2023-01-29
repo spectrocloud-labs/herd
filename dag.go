@@ -21,6 +21,16 @@ type opState struct {
 	fatal bool
 }
 
+func (o opState) toGraphEntry(name string) GraphEntry {
+	return GraphEntry{
+		WithCallback: o.fn != nil,
+		Callback:     o.fn,
+		Error:        o.err,
+		Fatal:        o.fatal,
+		Name:         name,
+	}
+}
+
 // NewGraph creates a new instance of a Graph.
 func NewGraph() *Graph {
 	return &Graph{Graph: depgraph.New(), ops: make(map[string]*opState)}
@@ -52,13 +62,7 @@ func (g *Graph) buildStateGraph() (graph [][]GraphEntry) {
 		states := []GraphEntry{}
 
 		for _, r := range layer {
-			states = append(states, GraphEntry{
-				WithCallback: g.ops[r].fn != nil,
-				Callback:     g.ops[r].fn,
-				Error:        g.ops[r].err,
-				Fatal:        g.ops[r].fatal,
-				Name:         r,
-			})
+			states = append(states, g.ops[r].toGraphEntry(r))
 		}
 
 		graph = append(graph, states)
