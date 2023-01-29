@@ -14,6 +14,11 @@ var Background GraphOption = func(key string, os *opState, g *Graph) error {
 	return nil
 }
 
+var WeakDeps GraphOption = func(key string, os *opState, g *Graph) error {
+	os.weak = true
+	return nil
+}
+
 func WithDeps(deps ...string) GraphOption {
 	return func(key string, os *opState, g *Graph) error {
 		for _, d := range deps {

@@ -92,7 +92,53 @@ var _ = Describe("zeroinit dag", func() {
 			Expect(g.State("bar").Error).ToNot(HaveOccurred())
 			Expect(f).To(Equal("triggered"))
 			testChan <- "foo"
+			Eventually(func() error {
+				return g.State("bar").Error
+			}).Should(HaveOccurred())
+		})
+	})
+
+	Context("Weak deps", func() {
+		It("runs with weak deps", func() {
+			f := ""
+			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+				f += "triggered"
+				return nil
+			}), WithDeps("bar"), WeakDeps)
+			g.AddOp("bar", WithCallback(func(ctx context.Context) error {
+				return fmt.Errorf("test")
+			}))
+
+			g.Run(context.Background())
+			Expect(f).To(Equal("triggered"))
+		})
+		It("doesn't run without weak deps", func() {
+			f := ""
+			foo := ""
+			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+				foo = "triggered"
+				return nil
+			}), WithDeps("bar"))
+
+			g.AddOp("fooz", WithCallback(func(ctx context.Context) error {
+				f = "nomercy"
+				return nil
+			}), WithDeps("baz"))
+
+			g.AddOp("baz", WithCallback(func(ctx context.Context) error {
+				return nil
+			}))
+
+			g.AddOp("bar", WithCallback(func(ctx context.Context) error {
+				return fmt.Errorf("test")
+			}))
+
+			err := g.Run(context.Background())
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(g.State("bar").Error).To(HaveOccurred())
+			Expect(f).To(Equal("nomercy"))
+			Expect(foo).To(Equal(""))
 		})
 	})
 })
