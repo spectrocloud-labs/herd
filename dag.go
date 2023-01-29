@@ -27,17 +27,15 @@ type GraphEntry struct {
 }
 
 // NewGraph creates a new instance of a Graph.
-func NewGraph(opts ...GraphOption) (*Graph, error) {
+func NewGraph(opts ...GraphOption) *Graph {
 	g := &Graph{Graph: depgraph.New(), ops: make(map[string]*opState)}
 	for _, o := range opts {
-		if err := o(g); err != nil {
-			return nil, err
-		}
+		o(g)
 	}
 	if g.init {
 		g.AddOp("init")
 	}
-	return g, nil
+	return g
 }
 
 func (g *Graph) AddOp(name string, opts ...OpOption) error {
