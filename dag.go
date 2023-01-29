@@ -84,16 +84,18 @@ func (g *Graph) Run(ctx context.Context) error {
 					g.ops[r.Name].Lock()
 					g.ops[k].Lock()
 
-					if g.ops[k].err != nil {
-						g.ops[r.Name].err = fmt.Errorf("'%s' deps %s failed", r.Name, k)
+					unlock := func() {
 						g.ops[r.Name].Unlock()
 						g.ops[k].Unlock()
+					}
+
+					if g.ops[k].err != nil {
+						g.ops[r.Name].err = fmt.Errorf("'%s' deps %s failed", r.Name, k)
+						unlock()
 
 						continue LAYER
 					}
-					g.ops[r.Name].Unlock()
-					g.ops[k].Unlock()
-
+					unlock()
 				}
 			}
 
