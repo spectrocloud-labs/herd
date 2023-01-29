@@ -7,28 +7,21 @@ import (
 	"github.com/kendru/darwin/go/depgraph"
 )
 
-type opCallback func(context.Context) error
-
 // Graph represents a directed graph.
 type Graph struct {
 	*depgraph.Graph
 	ops map[string]*opState
 }
 
-type opState struct {
-	fn    opCallback
-	err   error
-	fatal bool
-}
-
-func (o opState) toGraphEntry(name string) GraphEntry {
-	return GraphEntry{
-		WithCallback: o.fn != nil,
-		Callback:     o.fn,
-		Error:        o.err,
-		Fatal:        o.fatal,
-		Name:         name,
-	}
+// GraphEntry is the external representation of
+// the operation to execute (opState)
+type GraphEntry struct {
+	WithCallback bool
+	Background   bool
+	Callback     opCallback
+	Error        error
+	Fatal        bool
+	Name         string
 }
 
 // NewGraph creates a new instance of a Graph.
@@ -48,17 +41,12 @@ func (g *Graph) AddOp(name string, opts ...GraphOption) error {
 	return nil
 }
 
-type GraphEntry struct {
-	WithCallback bool
-	Callback     opCallback
-	Error        error
-	Fatal        bool
-	Name         string
+func (g *Graph) State(name string) GraphEntry {
+	return g.ops[name].toGraphEntry(name)
 }
 
 func (g *Graph) buildStateGraph() (graph [][]GraphEntry) {
 	for _, layer := range g.TopoSortedLayers() {
-
 		states := []GraphEntry{}
 
 		for _, r := range layer {
@@ -83,9 +71,13 @@ func (g *Graph) Run(ctx context.Context) error {
 				continue
 			}
 			fn := r.Callback
-			wg.Add(1)
+			if !r.Background {
+				wg.Add(1)
+			}
 			go func(ctx context.Context, g *Graph, key string) {
-				defer wg.Done()
+				if !g.ops[key].background {
+					defer wg.Done()
+				}
 				g.ops[key].err = fn(ctx)
 			}(ctx, g, r.Name)
 		}

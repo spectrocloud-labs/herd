@@ -75,4 +75,24 @@ var _ = Describe("zeroinit dag", func() {
 			Expect(err).To(Equal(fmt.Errorf("failure")))
 		})
 	})
+
+	Context("Sequential runs, background jobs", func() {
+		It("orders parallel", func() {
+			testChan := make(chan string)
+			f := ""
+			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+				f += "triggered"
+				return nil
+			}), WithDeps("bar"))
+			g.AddOp("bar", WithCallback(func(ctx context.Context) error {
+				<-testChan
+				return fmt.Errorf("test")
+			}), Background)
+			g.Run(context.Background())
+			Expect(g.State("bar").Error).ToNot(HaveOccurred())
+			Expect(f).To(Equal("triggered"))
+			testChan <- "foo"
+			Expect(g.State("bar").Error).To(HaveOccurred())
+		})
+	})
 })
