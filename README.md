@@ -21,7 +21,7 @@ package main
 import (
     "context"
 
-    "github.com/mudler/herd"
+    "github.com/spectrocloud-labs/herd"
 )
 
 func main() {
@@ -46,7 +46,7 @@ func main() {
     }))
 
     // Execute the DAG
-	g.Run(context.Background())
+    g.Run(context.Background())
     // f is "barfoo"
 }
 

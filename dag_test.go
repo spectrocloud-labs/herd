@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	. "github.com/mudler/herd"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/spectrocloud-labs/herd"
 )
 
 var _ = Describe("zeroinit dag", func() {

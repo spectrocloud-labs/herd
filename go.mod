@@ -1,4 +1,4 @@
-module github.com/mudler/herd
+module github.com/spectrocloud-labs/herd
 
 go 1.19
 
