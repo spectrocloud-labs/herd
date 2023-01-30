@@ -16,7 +16,7 @@ type Graph struct {
 }
 
 // GraphEntry is the external representation of
-// the operation to execute (opState)
+// the operation to execute (opState).
 type GraphEntry struct {
 	WithCallback    bool
 	Background      bool
@@ -37,7 +37,9 @@ func DAG(opts ...GraphOption) *Graph {
 		o(g)
 	}
 	if g.init {
-		g.Add("init")
+		if err := g.Add("init"); err != nil {
+			return nil
+		}
 	}
 	return g
 }
@@ -55,7 +57,9 @@ func (g *Graph) Add(name string, opts ...OpOption) error {
 	g.ops[name] = state
 
 	if g.init && len(g.Graph.Dependents(name)) == 0 {
-		g.Graph.DependOn(name, "init")
+		if err := g.Graph.DependOn(name, "init"); err != nil {
+			return err
+		}
 	}
 
 	return nil

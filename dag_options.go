@@ -1,6 +1,6 @@
 package herd
 
-// GraphOption it's the option for the DAG graph
+// GraphOption it's the option for the DAG graph.
 type GraphOption func(g *Graph)
 
 // EnableInit enables an Init jobs that takes paternity
