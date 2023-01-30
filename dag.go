@@ -56,7 +56,7 @@ func (g *Graph) Add(name string, opts ...OpOption) error {
 	}
 	g.ops[name] = state
 
-	if g.init && len(g.Graph.Dependents(name)) == 0 {
+	if g.init && len(g.Graph.Dependents(name)) == 0 && name != "init" {
 		if err := g.Graph.DependOn(name, "init"); err != nil {
 			return err
 		}

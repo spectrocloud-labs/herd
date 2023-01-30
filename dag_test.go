@@ -170,6 +170,7 @@ var _ = Describe("zeroinit dag", func() {
 
 		It("does run all untied jobs", func() {
 			g = DAG(EnableInit)
+			Expect(g).ToNot(BeNil())
 
 			g.Add("baz", WithCallback(func(ctx context.Context) error {
 				baz = true
