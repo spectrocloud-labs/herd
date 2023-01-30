@@ -33,13 +33,13 @@ func main() {
 
     // Example
     f := ""
-    g.Add("foo", WithCallback(func(ctx context.Context) error {
+    g.Add("foo", herd.WithCallback(func(ctx context.Context) error {
         f += "foo"
         // This executes after "bar" has ended successfully.
         return nil
-    }), WithDeps("bar"))
+    }), herd.WithDeps("bar"))
 
-    g.Add("bar", WithCallback(func(ctx context.Context) error {
+    g.Add("bar", herd.WithCallback(func(ctx context.Context) error {
         f += "bar"
         // This execute first
         return nil
