@@ -1,4 +1,4 @@
-package zeroinit
+package herd
 
 import (
 	"context"

@@ -1,10 +1,10 @@
-package zeroinit_test
+package herd_test
 
 import (
 	"context"
 	"fmt"
 
-	. "github.com/mudler/zeroinit"
+	. "github.com/mudler/herd"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +13,7 @@ var _ = Describe("zeroinit dag", func() {
 	var g *Graph
 
 	BeforeEach(func() {
-		g = NewGraph()
+		g = DAG()
 	})
 
 	Context("simple checks", func() {
@@ -43,11 +43,11 @@ var _ = Describe("zeroinit dag", func() {
 	Context("Sequential runs", func() {
 		It("orders parallel", func() {
 			f := ""
-			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+			g.Add("foo", WithCallback(func(ctx context.Context) error {
 				f += "foo"
 				return nil
 			}), WithDeps("bar"))
-			g.AddOp("bar", WithCallback(func(ctx context.Context) error {
+			g.Add("bar", WithCallback(func(ctx context.Context) error {
 				f += "bar"
 				return nil
 			}))
@@ -60,11 +60,11 @@ var _ = Describe("zeroinit dag", func() {
 		It("fails", func() {
 			f := ""
 
-			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+			g.Add("foo", WithCallback(func(ctx context.Context) error {
 				return fmt.Errorf("failure")
 			}), WithDeps("bar"), FatalOp)
 
-			g.AddOp("bar",
+			g.Add("bar",
 				WithCallback(func(ctx context.Context) error {
 					f += "bar"
 					return nil
@@ -80,11 +80,11 @@ var _ = Describe("zeroinit dag", func() {
 		It("orders parallel", func() {
 			testChan := make(chan string)
 			f := ""
-			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+			g.Add("foo", WithCallback(func(ctx context.Context) error {
 				f += "triggered"
 				return nil
 			}), WithDeps("bar"))
-			g.AddOp("bar", WithCallback(func(ctx context.Context) error {
+			g.Add("bar", WithCallback(func(ctx context.Context) error {
 				<-testChan
 				return fmt.Errorf("test")
 			}), Background)
@@ -101,11 +101,11 @@ var _ = Describe("zeroinit dag", func() {
 	Context("Weak deps", func() {
 		It("runs with weak deps", func() {
 			f := ""
-			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+			g.Add("foo", WithCallback(func(ctx context.Context) error {
 				f += "triggered"
 				return nil
 			}), WithDeps("bar"), WeakDeps)
-			g.AddOp("bar", WithCallback(func(ctx context.Context) error {
+			g.Add("bar", WithCallback(func(ctx context.Context) error {
 				return fmt.Errorf("test")
 			}))
 
@@ -115,21 +115,21 @@ var _ = Describe("zeroinit dag", func() {
 		It("doesn't run without weak deps", func() {
 			f := ""
 			foo := ""
-			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+			g.Add("foo", WithCallback(func(ctx context.Context) error {
 				foo = "triggered"
 				return nil
 			}), WithDeps("bar"))
 
-			g.AddOp("fooz", WithCallback(func(ctx context.Context) error {
+			g.Add("fooz", WithCallback(func(ctx context.Context) error {
 				f = "nomercy"
 				return nil
 			}), WithDeps("baz"))
 
-			g.AddOp("baz", WithCallback(func(ctx context.Context) error {
+			g.Add("baz", WithCallback(func(ctx context.Context) error {
 				return nil
 			}))
 
-			g.AddOp("bar", WithCallback(func(ctx context.Context) error {
+			g.Add("bar", WithCallback(func(ctx context.Context) error {
 				return fmt.Errorf("test")
 			}))
 
@@ -152,12 +152,12 @@ var _ = Describe("zeroinit dag", func() {
 		})
 
 		It("does not run untied jobs", func() {
-			g.AddOp("baz", WithCallback(func(ctx context.Context) error {
+			g.Add("baz", WithCallback(func(ctx context.Context) error {
 				baz = true
 				return nil
 			}))
 
-			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+			g.Add("foo", WithCallback(func(ctx context.Context) error {
 				foo = true
 				return nil
 			}))
@@ -169,14 +169,14 @@ var _ = Describe("zeroinit dag", func() {
 		})
 
 		It("does run all untied jobs", func() {
-			g = NewGraph(EnableInit)
+			g = DAG(EnableInit)
 
-			g.AddOp("baz", WithCallback(func(ctx context.Context) error {
+			g.Add("baz", WithCallback(func(ctx context.Context) error {
 				baz = true
 				return nil
 			}))
 
-			g.AddOp("foo", WithCallback(func(ctx context.Context) error {
+			g.Add("foo", WithCallback(func(ctx context.Context) error {
 				foo = true
 				return nil
 			}))

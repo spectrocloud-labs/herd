@@ -1,4 +1,4 @@
-package zeroinit
+package herd
 
 import (
 	"context"
@@ -26,19 +26,25 @@ type GraphEntry struct {
 	Name            string
 }
 
-// NewGraph creates a new instance of a Graph.
-func NewGraph(opts ...GraphOption) *Graph {
+// DAG creates a new instance of a runnable Graph.
+// A DAG is a Direct Acyclic Graph.
+// The graph is walked, and depending on the dependencies it will run the jobs as requested.
+// The Graph can be explored with `Analyze()`, extended with new operations with Add(),
+// and finally being run with Run(context.Context).
+func DAG(opts ...GraphOption) *Graph {
 	g := &Graph{Graph: depgraph.New(), ops: make(map[string]*opState)}
 	for _, o := range opts {
 		o(g)
 	}
 	if g.init {
-		g.AddOp("init")
+		g.Add("init")
 	}
 	return g
 }
 
-func (g *Graph) AddOp(name string, opts ...OpOption) error {
+// Add adds a new operation to the graph.
+// Requires a name (string), and accepts a list of options.
+func (g *Graph) Add(name string, opts ...OpOption) error {
 	state := &opState{Mutex: sync.Mutex{}}
 
 	for _, o := range opts {
@@ -55,6 +61,8 @@ func (g *Graph) AddOp(name string, opts ...OpOption) error {
 	return nil
 }
 
+// Stage returns the DAG item state.
+// Note: it locks to be thread-safe.
 func (g *Graph) State(name string) GraphEntry {
 	g.ops[name].Lock()
 	defer g.ops[name].Unlock()
@@ -76,10 +84,14 @@ func (g *Graph) buildStateGraph() (graph [][]GraphEntry) {
 	return
 }
 
+// Analyze returns the DAG and the Graph in the execution order.
+// It will also return eventual updates if called after Run().
 func (g *Graph) Analyze() (graph [][]GraphEntry) {
 	return g.buildStateGraph()
 }
 
+// Run starts the jobs defined in the DAG with a context.
+// It returns error in case of failure.
 func (g *Graph) Run(ctx context.Context) error {
 	for _, layer := range g.buildStateGraph() {
 		var wg sync.WaitGroup

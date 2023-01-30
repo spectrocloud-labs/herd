@@ -1,4 +1,4 @@
-module github.com/mudler/zeroinit
+module github.com/mudler/herd
 
 go 1.19
 

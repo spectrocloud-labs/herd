@@ -1,4 +1,4 @@
-package zeroinit_test
+package herd_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "kairos Test Suite")
+	RunSpecs(t, "zeroinit Test Suite")
 }
