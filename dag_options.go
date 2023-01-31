@@ -8,3 +8,8 @@ type GraphOption func(g *Graph)
 var EnableInit GraphOption = func(g *Graph) {
 	g.init = true
 }
+
+// CollectOrphans enables orphan job collection.
+var CollectOrphans GraphOption = func(g *Graph) {
+	g.collectOrphans = true
+}

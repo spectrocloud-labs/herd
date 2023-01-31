@@ -188,4 +188,30 @@ var _ = Describe("zeroinit dag", func() {
 			Expect(baz).To(BeTrue())
 		})
 	})
+
+	Context("Background jobs", func() {
+
+		It("waits for background jobs to finish", func() {
+
+			g = DAG(CollectOrphans)
+			Expect(g).ToNot(BeNil())
+
+			g.Add("baz",
+				Background,
+				FatalOp,
+				WithCallback(func(ctx context.Context) error {
+					return fmt.Errorf("failure")
+				}))
+
+			g.Add("foo",
+				WithDeps("baz"),
+				WithCallback(func(ctx context.Context) error {
+					return nil
+				}))
+
+			err := g.Run(context.Background())
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("failure"))
+		})
+	})
 })

@@ -11,8 +11,10 @@ import (
 // Graph represents a directed graph.
 type Graph struct {
 	*depgraph.Graph
-	ops  map[string]*opState
-	init bool
+	ops            map[string]*opState
+	init           bool
+	orphans        *sync.WaitGroup
+	collectOrphans bool
 }
 
 // GraphEntry is the external representation of
@@ -32,7 +34,7 @@ type GraphEntry struct {
 // The Graph can be explored with `Analyze()`, extended with new operations with Add(),
 // and finally being run with Run(context.Context).
 func DAG(opts ...GraphOption) *Graph {
-	g := &Graph{Graph: depgraph.New(), ops: make(map[string]*opState)}
+	g := &Graph{Graph: depgraph.New(), ops: make(map[string]*opState), orphans: &sync.WaitGroup{}}
 	for _, o := range opts {
 		o(g)
 	}
@@ -97,6 +99,16 @@ func (g *Graph) Analyze() (graph [][]GraphEntry) {
 // Run starts the jobs defined in the DAG with a context.
 // It returns error in case of failure.
 func (g *Graph) Run(ctx context.Context) error {
+
+	checkFatal := func(layer []GraphEntry) error {
+		for _, s := range layer {
+			if s.Fatal && g.ops[s.Name].err != nil {
+				return g.ops[s.Name].err
+			}
+		}
+		return nil
+	}
+
 	for _, layer := range g.buildStateGraph() {
 		var wg sync.WaitGroup
 
@@ -129,6 +141,8 @@ func (g *Graph) Run(ctx context.Context) error {
 
 			if !r.Background {
 				wg.Add(1)
+			} else if g.collectOrphans {
+				g.orphans.Add(1)
 			}
 			go func(ctx context.Context, g *Graph, key string) {
 				err := fn(ctx)
@@ -136,16 +150,24 @@ func (g *Graph) Run(ctx context.Context) error {
 				g.ops[key].err = err
 				if !g.ops[key].background {
 					wg.Done()
+				} else if g.collectOrphans {
+					g.orphans.Done()
 				}
 				g.ops[key].Unlock()
 			}(ctx, g, r.Name)
 		}
 
 		wg.Wait()
+		if err := checkFatal(layer); err != nil {
+			return err
+		}
+	}
 
-		for _, s := range layer {
-			if s.Fatal && g.ops[s.Name].err != nil {
-				return g.ops[s.Name].err
+	if g.collectOrphans {
+		g.orphans.Wait()
+		for _, layer := range g.buildStateGraph() {
+			if err := checkFatal(layer); err != nil {
+				return err
 			}
 		}
 	}
