@@ -11,14 +11,14 @@ import (
 // Graph represents a directed graph.
 type Graph struct {
 	*depgraph.Graph
-	ops            map[string]*opState
+	ops            map[string]*OpState
 	init           bool
 	orphans        *sync.WaitGroup
 	collectOrphans bool
 }
 
 // GraphEntry is the external representation of
-// the operation to execute (opState).
+// the operation to execute (OpState).
 type GraphEntry struct {
 	WithCallback    bool
 	Background      bool
@@ -34,7 +34,7 @@ type GraphEntry struct {
 // The Graph can be explored with `Analyze()`, extended with new operations with Add(),
 // and finally being run with Run(context.Context).
 func DAG(opts ...GraphOption) *Graph {
-	g := &Graph{Graph: depgraph.New(), ops: make(map[string]*opState), orphans: &sync.WaitGroup{}}
+	g := &Graph{Graph: depgraph.New(), ops: make(map[string]*OpState), orphans: &sync.WaitGroup{}}
 	for _, o := range opts {
 		o(g)
 	}
@@ -49,7 +49,7 @@ func DAG(opts ...GraphOption) *Graph {
 // Add adds a new operation to the graph.
 // Requires a name (string), and accepts a list of options.
 func (g *Graph) Add(name string, opts ...OpOption) error {
-	state := &opState{Mutex: sync.Mutex{}}
+	state := &OpState{Mutex: sync.Mutex{}}
 
 	for _, o := range opts {
 		if err := o(name, state, g); err != nil {

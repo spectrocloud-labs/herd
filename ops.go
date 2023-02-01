@@ -7,7 +7,7 @@ import (
 
 type opCallback func(context.Context) error
 
-type opState struct {
+type OpState struct {
 	sync.Mutex
 	fn         opCallback
 	err        error
@@ -16,7 +16,7 @@ type opState struct {
 	weak       bool
 }
 
-func (o *opState) toGraphEntry(name string) GraphEntry {
+func (o *OpState) toGraphEntry(name string) GraphEntry {
 	return GraphEntry{
 		WithCallback: o.fn != nil,
 		Callback:     o.fn,

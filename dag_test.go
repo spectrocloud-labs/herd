@@ -190,9 +190,7 @@ var _ = Describe("zeroinit dag", func() {
 	})
 
 	Context("Background jobs", func() {
-
 		It("waits for background jobs to finish", func() {
-
 			g = DAG(CollectOrphans)
 			Expect(g).ToNot(BeNil())
 
@@ -213,5 +211,35 @@ var _ = Describe("zeroinit dag", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("failure"))
 		})
+	})
+
+	Context("Conditionals options", func() {
+
+		It("Adds the option only if the condition passes", func() {
+			g = DAG(EnableInit)
+			Expect(g).ToNot(BeNil())
+
+			g.Add("baz",
+				ConditionalOption(func() bool { return true }, FatalOp),
+				WithCallback(func(ctx context.Context) error {
+					return fmt.Errorf("failure")
+				}))
+
+			err := g.Run(context.Background())
+			Expect(err).To(HaveOccurred())
+
+			g = DAG(EnableInit)
+			Expect(g).ToNot(BeNil())
+
+			g.Add("baz",
+				ConditionalOption(func() bool { return false }, FatalOp),
+				WithCallback(func(ctx context.Context) error {
+					return fmt.Errorf("failure")
+				}))
+
+			err = g.Run(context.Background())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 	})
 })
