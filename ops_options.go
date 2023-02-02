@@ -55,9 +55,9 @@ func ConditionalOption(condition func() bool, op OpOption) OpOption {
 
 // WithCallback associates a callback to the operation to be executed
 // when the DAG is walked-by.
-func WithCallback(fn func(context.Context) error) OpOption {
+func WithCallback(fn ...func(context.Context) error) OpOption {
 	return func(s string, os *OpState, g *Graph) error {
-		os.fn = fn
+		os.fn = append(os.fn, fn...)
 		return nil
 	}
 }

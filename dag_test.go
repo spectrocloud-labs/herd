@@ -3,6 +3,7 @@ package herd_test
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -72,7 +73,7 @@ var _ = Describe("zeroinit dag", func() {
 			)
 
 			err := g.Run(context.Background())
-			Expect(err).To(Equal(fmt.Errorf("failure")))
+			Expect(err.Error()).To(ContainSubstring("failure"))
 		})
 	})
 
@@ -209,7 +210,7 @@ var _ = Describe("zeroinit dag", func() {
 
 			err := g.Run(context.Background())
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("failure"))
+			Expect(err.Error()).To(ContainSubstring("failure"))
 		})
 	})
 
@@ -241,5 +242,53 @@ var _ = Describe("zeroinit dag", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+	})
+
+	Context("Multiple callbacks", func() {
+		It("fails if one of them fail", func() {
+			f := ""
+
+			g.Add("foo", WithCallback(func(ctx context.Context) error {
+				return nil
+			}, func(ctx context.Context) error {
+				return fmt.Errorf("ohno")
+			}), WithDeps("bar"), FatalOp)
+
+			g.Add("bar",
+				WithCallback(func(ctx context.Context) error {
+					f += "bar"
+					return nil
+				}),
+			)
+
+			err := g.Run(context.Background())
+			Expect(err.Error()).To(ContainSubstring("ohno"))
+		})
+
+		It("runs sequentially", func() {
+			f := ""
+			mu := sync.Mutex{}
+			g.Add("foo", WithCallback(
+				// Those runs in parallel
+				func(ctx context.Context) error {
+					mu.Lock()
+					f += "foo"
+					mu.Unlock()
+					return nil
+				},
+				func(ctx context.Context) error {
+					mu.Lock()
+					f += "na"
+					mu.Unlock()
+					return nil
+				},
+			), WithDeps("bar"))
+			g.Add("bar", WithCallback(func(ctx context.Context) error {
+				f += "bar"
+				return nil
+			}))
+			g.Run(context.Background())
+			Expect(f).To(Or(Equal("barfoona"), Equal("barnafoo")))
+		})
 	})
 })

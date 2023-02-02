@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/kendru/darwin/go/depgraph"
 )
 
@@ -22,7 +23,7 @@ type Graph struct {
 type GraphEntry struct {
 	WithCallback    bool
 	Background      bool
-	Callback        opCallback
+	Callback        []func(context.Context) error
 	Error           error
 	Fatal, WeakDeps bool
 	Name            string
@@ -117,7 +118,7 @@ func (g *Graph) Run(ctx context.Context) error {
 			if !r.WithCallback {
 				continue
 			}
-			fn := r.Callback
+			fns := r.Callback
 
 			if !r.WeakDeps {
 				for k := range g.Graph.Dependencies(r.Name) {
@@ -139,22 +140,27 @@ func (g *Graph) Run(ctx context.Context) error {
 				}
 			}
 
-			if !r.Background {
-				wg.Add(1)
-			} else if g.collectOrphans {
-				g.orphans.Add(1)
-			}
-			go func(ctx context.Context, g *Graph, key string) {
-				err := fn(ctx)
-				g.ops[key].Lock()
-				g.ops[key].err = err
-				if !g.ops[key].background {
-					wg.Done()
+			for i := range fns {
+				if !r.Background {
+					wg.Add(1)
 				} else if g.collectOrphans {
-					g.orphans.Done()
+					g.orphans.Add(1)
 				}
-				g.ops[key].Unlock()
-			}(ctx, g, r.Name)
+
+				go func(ctx context.Context, g *Graph, key string, f func(context.Context) error) {
+					err := f(ctx)
+					g.ops[key].Lock()
+					if err != nil {
+						g.ops[key].err = multierror.Append(g.ops[key].err, err)
+					}
+					if !g.ops[key].background {
+						wg.Done()
+					} else if g.collectOrphans {
+						g.orphans.Done()
+					}
+					g.ops[key].Unlock()
+				}(ctx, g, r.Name, fns[i])
+			}
 		}
 
 		wg.Wait()

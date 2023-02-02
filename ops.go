@@ -5,11 +5,9 @@ import (
 	"sync"
 )
 
-type opCallback func(context.Context) error
-
 type OpState struct {
 	sync.Mutex
-	fn         opCallback
+	fn         []func(context.Context) error
 	err        error
 	fatal      bool
 	background bool
