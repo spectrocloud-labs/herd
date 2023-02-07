@@ -53,6 +53,16 @@ func ConditionalOption(condition func() bool, op OpOption) OpOption {
 	return NoOp
 }
 
+// IfElse defines options that are enabled if the condition passess or not
+// It is just syntax sugar.
+func IfElse(condition bool, op, noOp OpOption) OpOption {
+	if condition {
+		return op
+	} else {
+		return noOp
+	}
+}
+
 // WithCallback associates a callback to the operation to be executed
 // when the DAG is walked-by.
 func WithCallback(fn ...func(context.Context) error) OpOption {
