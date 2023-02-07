@@ -58,9 +58,9 @@ func ConditionalOption(condition func() bool, op OpOption) OpOption {
 func IfElse(condition bool, op, noOp OpOption) OpOption {
 	if condition {
 		return op
-	} else {
-		return noOp
 	}
+
+	return noOp
 }
 
 // WithCallback associates a callback to the operation to be executed
