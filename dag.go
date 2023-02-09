@@ -21,12 +21,12 @@ type Graph struct {
 // GraphEntry is the external representation of
 // the operation to execute (OpState).
 type GraphEntry struct {
-	WithCallback    bool
-	Background      bool
-	Callback        []func(context.Context) error
-	Error           error
-	Fatal, WeakDeps bool
-	Name            string
+	WithCallback             bool
+	Background               bool
+	Callback                 []func(context.Context) error
+	Error                    error
+	Ignored, Fatal, WeakDeps bool
+	Name                     string
 }
 
 // DAG creates a new instance of a runnable Graph.
@@ -57,6 +57,7 @@ func (g *Graph) Add(name string, opts ...OpOption) error {
 			return err
 		}
 	}
+
 	g.ops[name] = state
 
 	if g.init && len(g.Graph.Dependents(name)) == 0 && name != "init" {
@@ -115,7 +116,7 @@ func (g *Graph) Run(ctx context.Context) error {
 
 	LAYER:
 		for _, r := range layer {
-			if !r.WithCallback {
+			if !r.WithCallback || r.Ignored {
 				continue
 			}
 			fns := r.Callback

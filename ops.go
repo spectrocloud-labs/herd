@@ -12,6 +12,7 @@ type OpState struct {
 	fatal      bool
 	background bool
 	weak       bool
+	ignore     bool
 }
 
 func (o *OpState) toGraphEntry(name string) GraphEntry {
@@ -23,5 +24,6 @@ func (o *OpState) toGraphEntry(name string) GraphEntry {
 		WeakDeps:     o.weak,
 		Fatal:        o.fatal,
 		Name:         name,
+		Ignored:      o.ignore,
 	}
 }

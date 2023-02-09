@@ -63,6 +63,18 @@ func IfElse(condition bool, op, noOp OpOption) OpOption {
 	return noOp
 }
 
+// EnableIf defines an operation dependency.
+// Dependencies can be expressed as a string.
+// Note: before running the DAG you must define all the operations.
+func EnableIf(conditional func() bool) OpOption {
+	return func(key string, os *OpState, g *Graph) error {
+		if !conditional() {
+			os.ignore = true
+		}
+		return nil
+	}
+}
+
 // WithCallback associates a callback to the operation to be executed
 // when the DAG is walked-by.
 func WithCallback(fn ...func(context.Context) error) OpOption {

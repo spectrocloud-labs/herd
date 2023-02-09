@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/spectrocloud-labs/herd"
 	. "github.com/spectrocloud-labs/herd"
 )
 
@@ -289,6 +290,34 @@ var _ = Describe("zeroinit dag", func() {
 			}))
 			g.Run(context.Background())
 			Expect(f).To(Or(Equal("barfoona"), Equal("barnafoo")))
+		})
+
+		It("ignores ops", func() {
+			g = DAG(EnableInit)
+			Expect(g).ToNot(BeNil())
+			f := ""
+			mu := sync.Mutex{}
+			g.Add("foo", WithCallback(
+				// Those runs in parallel
+				func(ctx context.Context) error {
+					mu.Lock()
+					f += "foo"
+					mu.Unlock()
+					return nil
+				},
+				func(ctx context.Context) error {
+					mu.Lock()
+					f += "na"
+					mu.Unlock()
+					return nil
+				},
+			), herd.WithDeps("bar"))
+			g.Add("bar", EnableIf(func() bool { return false }), WithCallback(func(ctx context.Context) error {
+				f += "bar"
+				return nil
+			}))
+			g.Run(context.Background())
+			Expect(f).To(Or(Equal("foona"), Equal("nafoo")))
 		})
 	})
 })
