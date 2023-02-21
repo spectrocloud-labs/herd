@@ -29,7 +29,7 @@ var WeakDeps OpOption = func(key string, os *OpState, g *Graph) error {
 	return nil
 }
 
-// WithWeakDeps defines dependencies that doesn't prevent the op to trigger
+// WithWeakDeps defines dependencies that doesn't prevent the op to trigger.
 func WithWeakDeps(deps ...string) OpOption {
 	return func(key string, os *OpState, g *Graph) error {
 
