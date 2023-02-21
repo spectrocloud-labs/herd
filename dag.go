@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/kendru/darwin/go/depgraph"
+	"github.com/samber/lo"
 )
 
 // Graph represents a directed graph.
@@ -27,6 +28,8 @@ type GraphEntry struct {
 	Error                    error
 	Ignored, Fatal, WeakDeps bool
 	Name                     string
+	Dependencies             []string
+	WeakDependencies         []string
 }
 
 // DAG creates a new instance of a runnable Graph.
@@ -123,6 +126,10 @@ func (g *Graph) Run(ctx context.Context) error {
 
 			if !r.WeakDeps {
 				for k := range g.Graph.Dependencies(r.Name) {
+					if len(r.WeakDependencies) != 0 && lo.Contains(r.WeakDependencies, k) {
+						continue
+					}
+
 					g.ops[r.Name].Lock()
 					g.ops[k].Lock()
 

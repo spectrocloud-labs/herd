@@ -319,5 +319,55 @@ var _ = Describe("zeroinit dag", func() {
 			g.Run(context.Background())
 			Expect(f).To(Or(Equal("foona"), Equal("nafoo")))
 		})
+
+		Context("specific weak dep", func() {
+			It("runs with weak deps", func() {
+				f := ""
+				g.Add("foo", WithCallback(func(ctx context.Context) error {
+					f += "triggered"
+					return nil
+				}), WithDeps("baz"), WithWeakDeps("bar"))
+				g.Add("bar", WithCallback(func(ctx context.Context) error {
+					return fmt.Errorf("test")
+				}))
+				g.Add("baz", WithCallback(func(ctx context.Context) error {
+					return nil
+				}))
+				g.Run(context.Background())
+				Expect(f).To(Equal("triggered"))
+			})
+
+			It("doesn't run with weak deps if a hard dep fail", func() {
+				f := ""
+				g.Add("foo", WithCallback(func(ctx context.Context) error {
+					f += "triggered"
+					return nil
+				}), WithDeps("bar"), WithWeakDeps("baz"))
+				g.Add("bar", WithCallback(func(ctx context.Context) error {
+					return fmt.Errorf("test")
+				}))
+				g.Add("baz", WithCallback(func(ctx context.Context) error {
+					return nil
+				}))
+				g.Run(context.Background())
+				Expect(f).To(BeEmpty())
+			})
+
+			It("runs with weak deps also if specifying twice", func() {
+				f := ""
+				g.Add("foo", WithCallback(func(ctx context.Context) error {
+					f += "triggered"
+					return nil
+				}), WithDeps("baz", "bar"), WithWeakDeps("bar"))
+				g.Add("bar", WithCallback(func(ctx context.Context) error {
+					return fmt.Errorf("test")
+				}))
+				g.Add("baz", WithCallback(func(ctx context.Context) error {
+					return nil
+				}))
+				g.Run(context.Background())
+				Expect(f).To(Equal("triggered"))
+			})
+		})
 	})
 })
