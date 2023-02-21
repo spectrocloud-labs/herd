@@ -365,8 +365,18 @@ var _ = Describe("zeroinit dag", func() {
 				g.Add("baz", WithCallback(func(ctx context.Context) error {
 					return nil
 				}))
-				g.Run(context.Background())
+				Expect(g.Run(context.Background())).ToNot(HaveOccurred())
 				Expect(f).To(Equal("triggered"))
+
+				Expect(len(g.Analyze())).To(Equal(2))
+				Expect(len(g.Analyze()[0])).To(Equal(2))
+				Expect(len(g.Analyze()[1])).To(Equal(1))
+
+				for _, layer := range g.Analyze() {
+					for _, f := range layer {
+						Expect(f.Executed).To(BeTrue(), fmt.Sprintf("%+v", f))
+					}
+				}
 			})
 		})
 	})

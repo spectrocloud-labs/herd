@@ -22,14 +22,14 @@ type Graph struct {
 // GraphEntry is the external representation of
 // the operation to execute (OpState).
 type GraphEntry struct {
-	WithCallback             bool
-	Background               bool
-	Callback                 []func(context.Context) error
-	Error                    error
-	Ignored, Fatal, WeakDeps bool
-	Name                     string
-	Dependencies             []string
-	WeakDependencies         []string
+	WithCallback                       bool
+	Background                         bool
+	Callback                           []func(context.Context) error
+	Error                              error
+	Ignored, Fatal, WeakDeps, Executed bool
+	Name                               string
+	Dependencies                       []string
+	WeakDependencies                   []string
 }
 
 // DAG creates a new instance of a runnable Graph.
@@ -161,6 +161,8 @@ func (g *Graph) Run(ctx context.Context) error {
 					if err != nil {
 						g.ops[key].err = multierror.Append(g.ops[key].err, err)
 					}
+					g.ops[key].executed = true
+
 					if !g.ops[key].background {
 						wg.Done()
 					} else if g.collectOrphans {

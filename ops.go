@@ -11,6 +11,7 @@ type OpState struct {
 	err        error
 	fatal      bool
 	background bool
+	executed   bool
 	weak       bool
 	weakdeps   []string
 	deps       []string
@@ -22,6 +23,7 @@ func (o *OpState) toGraphEntry(name string) GraphEntry {
 		WithCallback:     o.fn != nil,
 		Callback:         o.fn,
 		Error:            o.err,
+		Executed:         o.executed,
 		Background:       o.background,
 		WeakDeps:         o.weak,
 		Dependencies:     o.deps,
