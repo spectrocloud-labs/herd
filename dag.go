@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/kendru/darwin/go/depgraph"
@@ -30,6 +31,7 @@ type GraphEntry struct {
 	Name                               string
 	Dependencies                       []string
 	WeakDependencies                   []string
+	Duration                           time.Duration
 }
 
 // DAG creates a new instance of a runnable Graph.
@@ -156,6 +158,7 @@ func (g *Graph) Run(ctx context.Context) error {
 				}
 
 				go func(ctx context.Context, g *Graph, key string, f func(context.Context) error) {
+					now := time.Now()
 					err := f(ctx)
 					g.ops[key].Lock()
 					if err != nil {
@@ -168,6 +171,7 @@ func (g *Graph) Run(ctx context.Context) error {
 					} else if g.collectOrphans {
 						g.orphans.Done()
 					}
+					g.ops[key].duration = time.Since(now)
 					g.ops[key].Unlock()
 				}(ctx, g, r.Name, fns[i])
 			}

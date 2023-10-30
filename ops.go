@@ -3,6 +3,7 @@ package herd
 import (
 	"context"
 	"sync"
+	"time"
 )
 
 type OpState struct {
@@ -16,6 +17,7 @@ type OpState struct {
 	weakdeps   []string
 	deps       []string
 	ignore     bool
+	duration   time.Duration
 }
 
 func (o *OpState) toGraphEntry(name string) GraphEntry {
@@ -31,5 +33,6 @@ func (o *OpState) toGraphEntry(name string) GraphEntry {
 		Fatal:            o.fatal,
 		Name:             name,
 		Ignored:          o.ignore,
+		Duration:         o.duration,
 	}
 }
